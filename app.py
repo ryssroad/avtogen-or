@@ -36,7 +36,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
-    model: Optional[str] = Field(default="openai/gpt-3.5-turbo")
+    model: Optional[str] = Field(default=os.getenv("DEFAULT_MODEL", "qwen/qwen-2.5-coder-32b-instruct:free"))
     max_tokens: Optional[int] = Field(default=1000)
     temperature: Optional[float] = Field(default=0.7)
 

@@ -12,6 +12,8 @@ load_dotenv()
 
 # Настройка API URL
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+# Получение модели по умолчанию из переменных окружения
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "qwen/qwen-2.5-coder-32b-instruct:free")
 
 # Хранение истории сообщений
 message_history = []
@@ -107,8 +109,10 @@ def show_help():
 
 # Основная функция для запуска терминального клиента
 async def main():
+    global message_history
+    
     parser = argparse.ArgumentParser(description="Терминальный клиент для персонального бота-компаньона")
-    parser.add_argument("--model", type=str, default="openai/gpt-3.5-turbo", help="ID модели для использования")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, help="ID модели для использования")
     args = parser.parse_args()
     
     current_model = args.model

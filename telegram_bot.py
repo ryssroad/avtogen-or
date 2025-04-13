@@ -20,18 +20,29 @@ logger = logging.getLogger(__name__)
 # Получение токена бота из переменных окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+# Получение модели по умолчанию из переменных окружения
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "qwen/qwen-2.5-coder-32b-instruct:free")
 
 # Хранение контекста беседы для каждого пользователя
 user_contexts = {}
 
 # Функция для отправки запроса к API
-async def send_to_api(messages: List[Dict[str, str]], model: str = "openai/gpt-3.5-turbo") -> Dict[str, Any]:
+async def send_to_api(messages: List[Dict[str, str]], model: str = None) -> Dict[str, Any]:
+    # Если модель не указана, используем модель по умолчанию
+    if model is None:
+        model = DEFAULT_MODEL
+        
     async with aiohttp.ClientSession() as session:
         payload = {
             "messages": messages,
             "model": model,
             "max_tokens": 1000,
-            "temperature": 0.7
+            "temperature": 0.7,
+            # Добавляем дополнительные заголовки, которые требует OpenRouter
+            "extra_headers": {
+                "HTTP-Referer": os.getenv("APP_URL", "http://localhost:8000"),
+                "X-Title": "Personal AI Companion"
+            }
         }
         
         try:
@@ -131,7 +142,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         user_contexts[user_id] = []
     
     # Получение выбранной модели или использование модели по умолчанию
-    model = context.bot_data.get(user_id, {}).get("model", "openai/gpt-3.5-turbo")
+    model = context.bot_data.get(user_id, {}).get("model", DEFAULT_MODEL)
     
     # Добавление сообщения пользователя в контекст
     user_contexts[user_id].append({"role": "user", "content": user_message})
