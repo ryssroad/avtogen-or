@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
+from openai_router import OpenAIRouter
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -49,31 +50,51 @@ async def chat_with_openrouter(request_data: ChatRequest) -> Dict[str, Any]:
     if not api_key:
         raise HTTPException(status_code=500, detail="OpenRouter API key not configured")
     
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": os.getenv("APP_URL", "http://localhost:8000"),
-        "X-Title": "Personal Companion Bot"
-    }
+    # Определение метода API для OpenRouter
+    api_method = os.getenv("OPENROUTER_API_METHOD", "direct")
     
-    payload = {
-        "messages": [msg.dict() for msg in request_data.messages],
-        "model": request_data.model,
-        "max_tokens": request_data.max_tokens,
-        "temperature": request_data.temperature
-    }
-    
-    try:
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error calling OpenRouter API: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error calling OpenRouter API: {str(e)}")
+    if api_method == "openai":
+        # Использование OpenAI API для работы с OpenRouter
+        try:
+            from openai_router import OpenAIRouter
+            openai_router = OpenAIRouter()
+            messages = [msg.dict() for msg in request_data.messages]
+            return await openai_router.chat_completion(
+                messages=messages,
+                model=request_data.model,
+                max_tokens=request_data.max_tokens,
+                temperature=request_data.temperature
+            )
+        except Exception as e:
+            logger.error(f"Error calling OpenRouter API via OpenAI client: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error calling OpenRouter API via OpenAI client: {str(e)}")
+    else:
+        # Прямое использование OpenRouter API
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("APP_URL", "http://localhost:8000"),
+            "X-Title": "Personal Companion Bot"
+        }
+        
+        payload = {
+            "messages": [msg.dict() for msg in request_data.messages],
+            "model": request_data.model,
+            "max_tokens": request_data.max_tokens,
+            "temperature": request_data.temperature
+        }
+        
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error calling OpenRouter API: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error calling OpenRouter API: {str(e)}")
 
 # Маршруты API
 @app.post("/api/chat", response_model=ChatResponse)
@@ -96,21 +117,35 @@ async def list_models():
     if not api_key:
         raise HTTPException(status_code=500, detail="OpenRouter API key not configured")
     
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": os.getenv("APP_URL", "http://localhost:8000")
-    }
+    # Определение метода API для OpenRouter
+    api_method = os.getenv("OPENROUTER_API_METHOD", "direct")
     
-    try:
-        response = requests.get(
-            "https://openrouter.ai/api/v1/models",
-            headers=headers
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching models: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error fetching models: {str(e)}")
+    if api_method == "openai":
+        # Использование OpenAI API для работы с OpenRouter
+        try:
+            openai_router = OpenAIRouter()
+            return await openai_router.list_models()
+        except Exception as e:
+            logger.error(f"Error fetching models via OpenAI client: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error fetching models via OpenAI client: {str(e)}")
+    else:
+        # Прямое использование OpenRouter API
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("APP_URL", "http://localhost:8000")
+        }
+        
+        try:
+            response = requests.get(
+                "https://openrouter.ai/api/v1/models",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching models: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error fetching models: {str(e)}")
 
 @app.get("/")
 async def root():

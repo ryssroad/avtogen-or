@@ -79,6 +79,9 @@ def show_welcome():
     print("="*50)
     print("Персональный бот-компаньон (Терминальный клиент)")
     print("="*50)
+    api_method = os.getenv("OPENROUTER_API_METHOD", "direct")
+    print(f"Метод API: {api_method} (настраивается в .env файле)")
+    print("="*50)
     print("Команды:")
     print("/help - показать справку")
     print("/clear - очистить историю беседы")
@@ -95,6 +98,12 @@ def show_help():
     print("/models - показать доступные модели")
     print("/model <id> - выбрать модель (например, /model openai/gpt-3.5-turbo)")
     print("/exit - выйти из программы")
+    
+    api_method = os.getenv("OPENROUTER_API_METHOD", "direct")
+    print(f"\nТекущий метод API: {api_method}")
+    print("Для изменения метода API отредактируйте переменную OPENROUTER_API_METHOD в файле .env:")
+    print("- direct: прямые запросы к OpenRouter API")
+    print("- openai: использование библиотеки OpenAI для запросов к OpenRouter API")
 
 # Основная функция для запуска терминального клиента
 async def main():
